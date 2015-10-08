@@ -13,7 +13,6 @@
 #include <iostream>		//Print for debugging (Remove later?)
 #include <pthread.h>		//Threading for program
 #include <semaphore.h>		//Semaphores
-#include <sstream>		//String buffer
 using namespace std;
 
 //Thread functions
