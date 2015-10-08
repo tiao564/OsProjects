@@ -47,13 +47,13 @@ double wall_time, cpu_time;
 //Open input file
 infile.open(argv[1]);
 if(!infile.good()){
-	cerr << "The input file name was not correct. Please try again.\n";
+	cerr << "The input file name was not correct. Please try again." << endl;
 	exit(0);
 }
 //Open output file
 outfile.open(argv[2]);
 if(!outfile.good()){
-	cerr << "The output file name was not correct. Please try again.\n";
+	cerr << "The output file name was not correct. Please try again." << endl;
 	exit(0);
 }
 
@@ -64,7 +64,7 @@ sem_init(&Crit,0,1);
 
 //Timing
 start_timing();
-cout << "Starting timing: \n";
+cout << "Starting timing: " << endl;
 
 //Create Producer and Consumer
 pthread_t tProducer; pthread_t tConsumer;
@@ -76,8 +76,8 @@ pthread_join(tProducer, NULL); pthread_join(tConsumer, NULL);
 stop_timing();
 wall_time = get_wall_clock_diff();
 cpu_time  = get_CPU_time_diff();
-cout << "The time it took as wall time is: " << wall_time << ".\n";
-cout << "The time it took as CPU time is: " << cpu_time << ".\n";
+cout << "The time it took as wall time is: " << wall_time << endl;
+cout << "The time it took as CPU time is: " << cpu_time << endl;
 
 //Close files, now finished
 infile.close(); outfile.close();
@@ -104,7 +104,7 @@ void *threadConsumer(void * foo){
 	sem_wait(&Crit);		// the program
 	temp = Que[index];
 	if(temp[0] != char(-1)){
-	outfile << temp << "\n";	//Write line
+	outfile << temp << endl;	//Write line
 	}
 	index = (index+1)%10;		//Increment queue, % to make circular
 	sem_post(&Crit);		//Release Crit
