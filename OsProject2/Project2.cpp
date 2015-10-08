@@ -21,8 +21,8 @@ void *threadProducer(void * foo);
 
 void *threadConsumer(void * foo);
 
-
-//Global variables
+////////////////////////////////////////////////////////////////////////////////////
+//Global variables   		//to be shared between threads and main
 
 int debug = 0;			//Will be used to signal a problem and print statments accordingly. Remove when done?
 sem_t Crit, Full, Empty;	//Semaphores
@@ -30,16 +30,20 @@ sem_t Crit, Full, Empty;	//Semaphores
 ifstream infile;		//In file
 ofstream outfile;		//Out file
 string Que[10];			//Circular queue
+////////////////////////////////////////////////////////////////////////////////////
 
-
+//////////////////////////////////////////////////////////
 //            MAIN
 //Main will handle taking in and opening files.
 //	It will also create and run both threads as
 //	well as handle timing how long the threads take
 //	to run.
-int main(int argc, char * argv[]){
+/////////////////////////////////////////////////////////
 
-double wall_time, cpu_time; //local variables to hold time
+int main(int argc, char * argv[]){
+	
+//Local variables for time functions
+double wall_time, cpu_time; 
 
 //Open input file
 infile.open(argv[1]);
@@ -47,7 +51,7 @@ if(!infile.good()){
 	cerr << "The input file name was not correct. Please try again.\n";
 	exit(0);
 }
-
+//Open output file
 outfile.open(argv[2]);
 if(!outfile.good()){
 	cerr << "The output file name was not correct. Please try again.\n";
@@ -84,12 +88,17 @@ sem_destroy(&Crit); sem_destroy(&Empty); sem_destroy(&Full);
 return(0);
 }
 
+///////////////////////////////////////////////////////////////
+//Threads
+//   Consumer will read data and output to file
+//
+//   Producer will get data from file and save to buffer
+///////////////////////////////////////////////////////////////
 
 void *threadConsumer(void * foo){
 	cout << "Entering Consumer.\n";
 	string temp;
 	int index = 0;
-	int count = 0;
 	temp = Que[index];
 	while(temp[0] != char(-1)){	//char 1 was chosen to be a character not in
 	sem_wait(&Full);		// the file to signal that its at the end of
@@ -98,7 +107,6 @@ void *threadConsumer(void * foo){
 	if(temp[0] != char(-1)){
 	outfile << temp << "\n";	//Write line
 	}
-	count++;
 	index = (index+1)%10;		//Increment queue, % to make circular
 	sem_post(&Crit);		//Release Crit
 	sem_post(&Empty);		//Signal empty space
@@ -109,14 +117,12 @@ void *threadConsumer(void * foo){
 void *threadProducer(void * foo){
 	cout << "Entering Producer\n";
 	string line;
-	int count = 0;
 	int index = 0;
 	
 	while(getline(infile, line)){
 	sem_wait(&Empty);
 	sem_wait(&Crit);		//wait for critical section	
 	Que[index] = line;		//Line in queue
-	count++;
 	index = (index+1)%10;		//Increment queue, % to make circular
 	sem_post(&Crit);		//Release Critical for Consumer
 	sem_post(&Full);		//Tell Consumer that there is info in queue
