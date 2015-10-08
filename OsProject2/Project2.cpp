@@ -4,7 +4,7 @@
 //October 8th 2015
 
 //Include libraries
-
+#include <cstdlib>
 #include <stdlib.h>		//Exit functions for incorrect files
 #include "time_functions.h"	//Timing
 #include <string>		//Buffer
