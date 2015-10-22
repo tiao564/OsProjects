@@ -7,13 +7,16 @@
 //Include libraries//
 /////////////////////
 
-#include <stdlib.h>
-#include <pthread.h>
-#include <fstream>
-#include <vector>
-#include <iostream>
-#include <string>
-#include <sstream>
+#include <stdio.h>		//For file input 
+#include "time_functions.h"	//For file input
+#include <stdlib.h>		//For file input
+#include <cstring>		//For file input
+#include <fstream>		//File input
+#include <pthread.h>		//Threading
+#include <vector>		//Setting up arrays
+#include <iostream>		//Standard C++ functions
+#include <string>		//Use of strings
+#include <sstream>		//Parsing of rows
 
 using namespace std;
 
@@ -44,7 +47,7 @@ typedef struct _tempData {
 
 //Prints matrix to out put file and will print to screen as well for trouble shooting
 //although I may remove this at the end
-void printMatrix(Matrix mat, char * output);
+void printMatrix(Matrix mat, char const* output);
 
 //Goes through and creates a thread for each location on the product matrix
 //then runs the threads
@@ -56,12 +59,20 @@ void threadMaker(int thread_count);
 //mutex
 void *mult(void * location);
 
+//Opens input file
+char const* openInput();
+
+//Opens output file
+char const* openOutput();
+
 ////////////////////
 //Global Variables//
 ////////////////////
 Matrix matt, matty;	//Matt is the first input matrix Matty, his wife is the second
 Matrix * matilda;	//The product of Matt and Matty, named Matilda
 pthread_mutex_t * lock;
+FILE * ofp;		//output file pointer
+FILE * ifp;		//input file pointer
 
 int main(int argc, char * argv[])
 {
@@ -75,7 +86,7 @@ lock = new pthread_mutex_t;
 //Initialize the mutex
 pthread_mutex_init(lock, NULL);
 
-ifstream infile (argv[1]);
+ifstream infile (openInput());
 if(!infile.good())
 {
  cout << "File could not be opened, make sure input file is first argument and is spelled correctly, remember to add .txt if needed. \n";
@@ -138,11 +149,11 @@ threads = matt.m[0].size() * matt.m.size() * matty.m[0].size();
 threadMaker(threads);
 //printMatrix(matt, argv[2]);
 //printMatrix(matty, argv[2]);
-printMatrix(*matilda, argv[2]);
+printMatrix(*matilda, openOutput());
 return 0;
 }
 
-void printMatrix(Matrix mat, char * output)
+void printMatrix(Matrix mat, char const* output)
 {
 	int i, j;
 	ofstream outfile (output);
@@ -222,4 +233,54 @@ void *mult(void * location)
   pthread_mutex_unlock(lock);
 
   return ((void *)0);
+}
+
+
+char const* openInput()
+{
+printf("infile\n\n");
+char aline[50];
+char *fullfilepath = (char*) malloc(30);
+// allow for different names per project
+char *thisprojectfile_in = (char*) malloc(13);
+strcpy(thisprojectfile_in,"project3_in.txt");
+
+/* All students will have to use the SAME names & paths for thisprojectfile_in & thisprojectfile_out.
+"filebase" (defined in time_functions.h) is the path to your data, minus the file name.
+On Windows it is: c:\oscourse on Linux it is /root/oscourse
+The code in "time_functions.h will detect Windows/Linux for you*/
+
+strcpy(fullfilepath,filebase);
+strcat(fullfilepath, thisprojectfile_in);
+printf ("fullpath=[%s] \n" , fullfilepath); // for debugging your filename
+return fullfilepath;
+//ifp=fopen(fullfilepath,"r");
+//if (ifp == NULL)
+//{
+//printf("cannot open file\n");
+//exit(4);
+//}
+//fread(aline,1,30, ifp);
+//printf("%s\n", aline); // for debugging, prove you got a line
+}
+
+char const* openOutput()
+{
+printf("outfile\n\n");
+char aline[50];
+char *fullfilepath = (char*) malloc(30);
+char *thisprojectfile_out = (char*) malloc(13);
+strcpy(thisprojectfile_out,"project3_out.txt");
+strcpy(fullfilepath,filebase);
+strcat(fullfilepath, thisprojectfile_out);
+printf ("fullpath=[%s] \n" , fullfilepath); // for debugging your filename
+return fullfilepath;
+//ifp=fopen(fullfilepath,"r");
+//if (ifp == NULL)
+//{
+//printf("cannot open file\n");
+//exit(4);
+//}
+//fread(aline,1,30, ifp);
+//printf("%s\n", aline); // for debugging, prove you got a line
 }
