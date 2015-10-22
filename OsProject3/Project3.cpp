@@ -71,11 +71,18 @@ char const* openOutput();
 Matrix matt, matty;	//Matt is the first input matrix Matty, his wife is the second
 Matrix * matilda;	//The product of Matt and Matty, named Matilda
 pthread_mutex_t * lock;
-FILE * ofp;		//output file pointer
-FILE * ifp;		//input file pointer
+
+
+//////////////
+//   Main   //
+//////////////
 
 int main(int argc, char * argv[])
 {
+
+cout << "Start program.\n";
+
+//Number of threads
 int threads;
 
 //Get space for product array
@@ -87,11 +94,6 @@ lock = new pthread_mutex_t;
 pthread_mutex_init(lock, NULL);
 
 ifstream infile (openInput());
-if(!infile.good())
-{
- cout << "File could not be opened, make sure input file is first argument and is spelled correctly, remember to add .txt if needed. \n";
- exit(0);
-}
 
 //////////////////////////////////////
 //Variables for grabbing out of file//
@@ -102,7 +104,7 @@ int row_num = 0;
 int val;
 while(!infile.eof())
 {					//Sanity check comments, can ignore
-getline(infile,row);			//get line, store in row
+getline(infile,row);			//Get line, store in row
   if(row.size() != 0)
   {
     if(row[0] == '*')			//We hit the sperator, reset row, change first
@@ -112,10 +114,10 @@ getline(infile,row);			//get line, store in row
     }
     else
     {
-      stringstream parse(row);		//split up row into parts
-      if(first == true)			//defines first matrix matt
+      stringstream parse(row);		//Split up row into parts
+      if(first == true)			//Defines first matrix matt else second matrix matty
       {
-        matt.m.push_back(vector<int>());
+        matt.m.push_back(vector<int>()); 
       }
       else
       {
@@ -132,7 +134,7 @@ getline(infile,row);			//get line, store in row
 	  matty.m[row_num].push_back(val);
 	}
       }
-      row_num++;
+      row_num++;			//Next row
     }
   }
 }
@@ -147,11 +149,20 @@ if(matt.m[0].size() != matty.m.size())
 
 threads = matt.m[0].size() * matt.m.size() * matty.m[0].size();
 threadMaker(threads);
-//printMatrix(matt, argv[2]);
-//printMatrix(matty, argv[2]);
+//printMatrix(matt, openOutput();
+//printMatrix(matty, openOutput();
 printMatrix(*matilda, openOutput());
+
+cout << "Done.\n";
+
 return 0;
 }
+
+
+////////////////////////
+//Function Definitions//
+////////////////////////
+
 
 void printMatrix(Matrix mat, char const* output)
 {
@@ -178,12 +189,12 @@ void threadMaker(int thread_count)
   //Array of threads that will run mul function
   pthread_t * multiThread = new pthread_t[thread_count];
 
-  for(i=0; i<matt.m.size(); i++)
+  for(i=0; i<matt.m.size(); i++)				//Run through 1st array
   {
-    matilda->m.push_back(vector<int>(matty.m[0].size()));
-    for(j=0; j<matty.m[i].size(); j++)
+    matilda->m.push_back(vector<int>(matty.m[0].size()));	
+    for(j=0; j<matty.m[i].size(); j++)				//Run through 2nd array
     {
-      for(k=0; k<matt.m[i].size(); k++)
+      for(k=0; k<matt.m[i].size(); k++)				//Product size
       {
         tempData * foo = new tempData;
 	foo->row=i;		//row
@@ -193,7 +204,7 @@ void threadMaker(int thread_count)
 	//Create a thread for the mult function and pass in the data given
 	pthread_create(&multiThread[thread_id], NULL, mult, (void *)foo);
 
-//	cout << "foo row: " << foo->row << endl;
+//	cout << "foo row: " << foo->row << endl;		//debugging print statements
 //	cout << "foo col: " << foo->col << endl;
 //	cout << "foo index: " << foo->index << endl;
 //	cout << "foo id: " << foo->id << endl;
@@ -235,38 +246,24 @@ void *mult(void * location)
   return ((void *)0);
 }
 
-
+//////////////////////////////////////////////////////////////
+//Heavily based of provided functions from Doctor Foreman.  //
+//Credit goes to him					    //
+//////////////////////////////////////////////////////////////
 char const* openInput()
 {
-printf("infile\n\n");
 char aline[50];
 char *fullfilepath = (char*) malloc(30);
-// allow for different names per project
 char *thisprojectfile_in = (char*) malloc(13);
 strcpy(thisprojectfile_in,"project3_in.txt");
-
-/* All students will have to use the SAME names & paths for thisprojectfile_in & thisprojectfile_out.
-"filebase" (defined in time_functions.h) is the path to your data, minus the file name.
-On Windows it is: c:\oscourse on Linux it is /root/oscourse
-The code in "time_functions.h will detect Windows/Linux for you*/
-
 strcpy(fullfilepath,filebase);
 strcat(fullfilepath, thisprojectfile_in);
 printf ("fullpath=[%s] \n" , fullfilepath); // for debugging your filename
 return fullfilepath;
-//ifp=fopen(fullfilepath,"r");
-//if (ifp == NULL)
-//{
-//printf("cannot open file\n");
-//exit(4);
-//}
-//fread(aline,1,30, ifp);
-//printf("%s\n", aline); // for debugging, prove you got a line
 }
 
 char const* openOutput()
 {
-printf("outfile\n\n");
 char aline[50];
 char *fullfilepath = (char*) malloc(30);
 char *thisprojectfile_out = (char*) malloc(13);
@@ -275,12 +272,4 @@ strcpy(fullfilepath,filebase);
 strcat(fullfilepath, thisprojectfile_out);
 printf ("fullpath=[%s] \n" , fullfilepath); // for debugging your filename
 return fullfilepath;
-//ifp=fopen(fullfilepath,"r");
-//if (ifp == NULL)
-//{
-//printf("cannot open file\n");
-//exit(4);
-//}
-//fread(aline,1,30, ifp);
-//printf("%s\n", aline); // for debugging, prove you got a line
 }
