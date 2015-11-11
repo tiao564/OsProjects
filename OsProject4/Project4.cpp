@@ -103,20 +103,24 @@ int main(){
   int r = atoi(&inputs[0]);
   int w = atoi(&inputs[1]);
   int R = atoi(&inputs[3]);
-  int W = atoi(&inputs[4]);
+  int W = atoi(&inputs[12]);
   cout << "Num readers: " << r << "\nNum writers: " << w << "\nReaders delay: " << R;
   cout << "\nWriters delay: " << W << endl;
 
+  //Declare threads and thread variables
   pthread_t * tReader = new pthread_t[r];
   pthread_t * tWriter = new pthread_t[w];
   int tR, tW;
 
+  //Create writer threads
   for(tW=0; tW<2; tW++){
   tData * bar = new tData;
   bar->tID = tW;
   bar->tDelay=W;
   pthread_create(&tWriter[tW], NULL, threadWrite, (void *)bar);
   }
+
+  //Create reader threads
   for(tR=0; tR<r; tR++){
   tData * bar = new tData;
   bar->tID = tR;
@@ -124,20 +128,24 @@ int main(){
   pthread_create(&tReader[tR], NULL, threadRead, (void *)bar);
   }
 
+  //Join writers
   for(tW=0; tW<w; tW++){
   pthread_join(tWriter[tW], NULL);
   }
   
+  //Join readers
   for(tR=0; tR<w; tR++){
   pthread_join(tReader[tR], NULL);
   }
 
+  //free space
   delete [] tReader;
   delete [] tWriter;
 
   return 0;
 }
 
+  //Call monitor and run threads using a temp data struct (reading)
 void *threadRead(void * foo){
   int j;
   string dBRead;
@@ -159,6 +167,7 @@ void *threadRead(void * foo){
  return (void *)0; 
 }
 
+  //Call monitor and run threads using a temp data structure (writing)
 void *threadWrite(void * bar){
   int k;
   tData * foo = (tData *)bar; //Cast to new struct
@@ -232,6 +241,7 @@ void Monitor::startReading(){
   unlock();
 }
 
+//Stop reading and signal ok to write
 void Monitor::stopReading(){
  lock();
   activeRead--;
@@ -241,6 +251,7 @@ void Monitor::stopReading(){
   unlock();
 }
 
+//See if its ok to write
 void Monitor::startWriting() {
   lock();
      while ((activeWrite + activeRead) > 0) {
@@ -251,6 +262,7 @@ void Monitor::startWriting() {
   unlock();
 }
 
+//stop writing and signal ok to read
 void Monitor::stopWriting(){
   lock();
    activeWrite--;
