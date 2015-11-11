@@ -1,6 +1,5 @@
 /*Monitor file*/
 
-#include "Monitor.h"
 
 //Public section
 
@@ -11,7 +10,13 @@ Monitor::Monitor(){
   pthread_mutex_init(&mLock, NULL);
   pthread_mutex_init(&outFileLock, NULL);
 
-  outfile.open(filepathout);
+  char *fullfilepath = (char*) malloc(30);
+  char *thisprojectfile_out = (char*) malloc(13);
+  strcpy(thisprojectfile_out,"project4_out.txt");
+  strcpy(fullfilepath,filebase);
+  strcat(fullfilepath, thisprojectfile_out);
+
+  outfile.open(fullfilepath);
 
   activeRead=0;
   activeWrite=0;

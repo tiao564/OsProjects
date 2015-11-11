@@ -1,5 +1,8 @@
 /*Monitor.h The header file*/
+#ifndef hMonitor
+#define hMonitor
 
+#include "time_functions.h"
 #include <pthread.h>
 #include <iostream>
 #include <stdlib.h>
@@ -29,6 +32,8 @@ public:
 	void fileRead(string dB, int tID);
 	void fileWrite(string db, int tId);
 
+protected:
+
 private:
 	int activeRead, activeWrite; //These are the active thread counts
 	int waitingRead, waitingWrite; //Threads waiting to get into critical section
@@ -41,7 +46,6 @@ private:
 	pthread_mutex_t mLock;	  //Exclusion for conditition variables
 
 	/* A multitude of various functions to call easily */
-	int notEmpty();
 	int isRead();
 	int isWrite();
 	//Quefunctions will be used for Mode 3
@@ -54,3 +58,4 @@ private:
 	void fileUnlock();
 	// File unlock
 };
+#endif

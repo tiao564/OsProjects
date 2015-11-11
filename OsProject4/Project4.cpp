@@ -6,20 +6,63 @@
 
 /*Main*/
 
-#include "time_functions.h"
-#include "Monitor.h"
-#include <string>
-#include <cstring>
-#include <stdio.h>
-#include <iostream>
-#include <pthread.h>
-#include <sstream>
 #include <vector>
+#include <string>
 #include <stdlib.h>
+#include <cstring>
+#include <cstring>
 #include <fstream>
+#include <stdio.h>
+#include <sstream>
+#include <iostream>
+#include "pthread.h"
+#include "time_functions.h"
 
 using namespace std;
 
+class Monitor{
+private:	
+	int activeRead, activeWrite; //These are the active thread counts
+	int waitingRead, waitingWrite; //Threads waiting to get into critical section
+
+	ofstream outfile;
+
+	pthread_cond_t OktoRead;  //Thread can read
+	pthread_cond_t OktoWrite; //Thread can write
+	pthread_mutex_t outFileLock;  //IO file exclusion
+	pthread_mutex_t mLock;	  //Exclusion for conditition variables
+
+	/* A multitude of various functions to call easily */
+	int isRead();
+	int isWrite();
+	//Quefunctions will be used for Mode 3
+	void lock();
+	// Mutex lock
+	void fileLock();
+	// Lock file
+	void unlock();
+	// Mutex unlock
+	void fileUnlock();
+	// File unlock
+
+public:
+	//Constructor function
+	Monitor();
+	//Destroy function
+	~Monitor();
+	//Start reading, thread
+	void startReading();
+	//Stop reading, thread
+	void stopReading();
+	//Start writing, thread
+	void startWriting();
+	//Stop writing, thread
+	void stopWriting();
+
+	//File writing functions
+	void fileRead(int time, int mm, int tID);
+	void fileWrite(int time, int mm, int tID);
+};
 ////////////////////////
 //Structure for thread//
 ////////////////////////
@@ -38,9 +81,7 @@ void *threadRead(void * foo);
 
 void *threadWrite(void * bar);
 const char * openInput();
-const char * openOutput();
 
-void currentTime;
 ////////////////////
 //Global variables//
 ////////////////////
@@ -48,8 +89,9 @@ void currentTime;
 string dB;
 
 const char *  projectfilein = openInput();
-const char *  projectfileout = openOutput();
-//Monitor ReadWrite;
+int timeS;
+int timeMS;
+Monitor ReadWrite;
 
 int main(){
   //Open file and get inputs for running//
@@ -65,12 +107,9 @@ int main(){
   cout << "Num readers: " << r << "\nNum writers: " << w << "\nReaders delay: " << R;
   cout << "\nWriters delay: " << W << endl;
 
-
   pthread_t * tReader = new pthread_t[r];
   pthread_t * tWriter = new pthread_t[w];
   int tR, tW;
-
-  dB = currentTime();
 
   for(tW=0; tW<2; tW++){
   tData * bar = new tData;
@@ -109,9 +148,8 @@ void *threadRead(void * foo){
   ReadWrite.startReading();
 
   dBRead = dB;
-
-  ReadWrite.fileRead(dBRead, bar->tID);
-
+  get_wall_time_ints(&timeS, &timeMS);
+  ReadWrite.fileRead(timeS, timeMS, bar->tID);
   ReadWrite.stopReading();
 
   for(j=0;j<(bar -> tDelay); j++){}
@@ -129,9 +167,7 @@ void *threadWrite(void * bar){
   {
     ReadWrite.startWriting();
 
-      dB = currentTime();
-      dB = "dickbutt";
-    ReadWrite.fileWrite(dB, foo-> tID);
+      ReadWrite.fileWrite(timeS, timeMS, foo-> tID);
 
     for(k=0; k< (foo->tDelay);k++){}
   }
@@ -154,26 +190,107 @@ printf ("fullpath=[%s] \n" , fullfilepath); // for debugging your filename
 return fullfilepath;
 }
 
-char const* openOutput()
-{
-char aline[50];
-char *fullfilepath = (char*) malloc(30);
-char *thisprojectfile_out = (char*) malloc(13);
-strcpy(thisprojectfile_out,"project4_out.txt");
-strcpy(fullfilepath,filebase);
-strcat(fullfilepath, thisprojectfile_out);
-printf ("fullpath=[%s] \n" , fullfilepath); // for debugging your filename
-return fullfilepath;
+
+//Initalize Monitor
+Monitor::Monitor(){
+  pthread_cond_init(&OktoRead,NULL);
+  pthread_cond_init(&OktoWrite,NULL);
+  pthread_mutex_init(&mLock, NULL);
+  pthread_mutex_init(&outFileLock, NULL);
+
+  char *fullfilepath = (char*) malloc(30);
+  char *thisprojectfile_out = (char*) malloc(13);
+  strcpy(thisprojectfile_out,"project4_out.txt");
+  strcpy(fullfilepath,filebase);
+  strcat(fullfilepath, thisprojectfile_out);
+
+  outfile.open(fullfilepath);
+
+  activeRead=0;
+  activeWrite=0;
+  waitingRead=0;
+  waitingWrite=0;
 }
 
-string currentTime(){
-  int seconds, millisecs;
-  string timing;
-  string secnds, mil;
-  get_wall_time_ints(&seconds, &millisecs);
-  secnds = to_string(seconds);
-  mil = to_string(millisecs);
-  timing = secnds + " " + mil; 
-  return timing;
+//Destory Monitor
+Monitor::~Monitor(){
+  pthread_cond_destroy(&OktoRead);
+  pthread_cond_destroy(&OktoWrite);
+  pthread_mutex_destroy(&mLock);
+  pthread_mutex_destroy(&outFileLock);
+
+  outfile.close();
+}
+// See if reading can begin
+void Monitor::startReading(){
+  lock();
+    while((activeWrite + waitingWrite)>0){   //If writing or if waiting to write hold
+     waitingRead++;
+     pthread_cond_wait(&OktoRead, &mLock);
+     waitingRead--;
+    }
+  unlock();
+}
+
+void Monitor::stopReading(){
+ lock();
+  activeRead--;
+  if (activeRead == 0 && waitingWrite > 0){
+    pthread_cond_signal(&OktoWrite);
+  }
+  unlock();
+}
+
+void Monitor::startWriting() {
+  lock();
+     while ((activeWrite + activeRead) > 0) {
+        waitingWrite++;
+        pthread_cond_wait(&OktoWrite, &mLock);
+        waitingWrite--;
+     }
+  unlock();
+}
+
+void Monitor::stopWriting(){
+  lock();
+   activeWrite--;
+    if (waitingWrite > 0) {
+      pthread_cond_signal(&OktoWrite);
+    }
+    else if (waitingRead > 0) {
+      pthread_cond_broadcast(&OktoRead);
+    }
+  unlock();
+  }
+
+//File IO
+void Monitor::fileRead(int time, int mm, int tID){
+  fileLock();
+  outfile << ">>> DB value set to: " << time << ":" << mm << " by reader thread numaber: " << tID << endl;
+  fileUnlock(); 
+}
+
+void Monitor::fileWrite(int time, int mm, int tID){
+  fileLock();
+  outfile << ">>> DB value set to: " << time << ":" << mm << " by writer thread numaber: " << tID << endl;
+  fileUnlock();
+}
+
+//Private
+//Functions simply lock and unlock corrosponding mutexs
+void Monitor::lock(){
+  pthread_mutex_lock(&mLock);
+}
+
+void Monitor::fileLock(){
+  pthread_mutex_lock(&outFileLock);
+}
+
+void Monitor::unlock(){
+  pthread_mutex_unlock(&mLock);
+}
+
+void Monitor::fileUnlock(){
+  pthread_mutex_unlock(&outFileLock);
 }
 
